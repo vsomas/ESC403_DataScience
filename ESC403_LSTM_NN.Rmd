@@ -1,0 +1,173 @@
+---
+title: "ESC403_LSTM_NN"
+output: pdf_document
+---
+
+References:
+http://datasideoflife.com/?p=1171
+https://www.r-bloggers.com/2018/04/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
+https://blog.clairvoyantsoft.com/covid-19-prediction-using-lstm-cba2fd4fc7fc
+https://www.r-bloggers.com/2018/11/lstm-with-keras-tensorflow/
+https://keras.rstudio.com/articles/sequential_model.html
+
+############################################################################################
+# Data Wrangling
+############################################################################################
+
+```{r}
+library(keras)
+library(tensorflow)
+library(ggplot2)
+library(dplyr)
+
+# 1.Load data
+library(COVID19)
+df <- covid19(c("Switzerland"), level = 1)
+df <- df[35:nrow(df),]
+
+#head(economics)
+#dim(economics)
+```
+
+```{r}
+# function that scales every column to be between 0 and 1
+# Further To-Do: Check if scaling is really needed. If yes it should also give the variables to rescale later!
+myscale <- function(df){
+  scaleddf <- data.frame( sapply( df, function(x){(x-min(x,na.rm = T))/(max(x,na.rm = T)-min(x,na.rm = T))} ))
+  return(scaleddf)
+}
+
+myscale(economics[,c(2:4)])
+
+```
+
+
+```{r}
+# Function data representation:
+outcome <- data.frame(economics[1:20,c("unemploy")])
+covariates <- economics[1:20,c("pop","psavert")]
+
+
+data_handling <- function(outcome,covariates=NULL,lag){
+  prediction <- lag
+  # 1. Scaling
+  scaled_outcome <- myscale(outcome)
+
+ # Outcome
+  #scale_factor_outcome <- attributes(scaled_outcome)[c("scaled:center","scaled:scale")]
+  
+  if(!is.null(covariates)){
+    scaled_covariates <- myscale(covariates) # Covariates
+    #scale_factor_covariates <- attributes(scaled_covariates)[c("scaled:center","scaled:scale")]
+    
+    train <- data.frame(cbind(scaled_outcome,scaled_covariates))
+    #scale_factor <- list("outcome" = scale_factor_outcome, "covariates"=scale_factor_covariates)
+  }else{
+    train <- data.frame(cbind(scaled_outcome))
+    #scale_factor <- list("outcome" = scale_factor_outcome)
+  }
+  
+  #train <- dplyr::select(train, "unemploy")
+  no_features <- ncol(train)
+  
+  # 2. Creating Lagged Data
+  x_train_data <- list()
+  for (i in 1:ncol(train)) {
+      x_train_data[[i]] <- t(sapply( 1:(length(train[, i]) - lag  ),
+          function(x) train[x:(x + lag - 1), i]
+      ))
+  }
+
+  y_train_data <- scaled_outcome[(lag+1):nrow(scaled_outcome),]
+
+  # 3. Specify Dimension of data
+  x_train_arr <- array(data = as.numeric(unlist(x_train_data)),
+      dim = c(
+          nrow(x_train_data[[1]]),no_features,lag
+      ))
+  #dim(x_train_arr)
+  y_train_arr <- array(
+      data = as.numeric(unlist(y_train_data)),
+      )
+  #return(list("x_train"=x_train_data,"y_train"=y_train_data,"features"=no_features, "scale"=scale_factor))
+  #return(list("x_train"=x_train_arr,"y_train"=y_train_arr,"features"=no_features, "scale"=scale_factor))
+
+  return(list("x_train"=x_train_arr,"y_train"=y_train_arr,"features"=no_features))
+}
+
+#data_handling(outcome=outcome,covariates=covariates,lag=12)
+#data_handling(outcome=outcome,lag=12)
+```
+
+
+```{}
+#split = as.integer(nrow(X$x_train[[1]]) * 0.8)
+#dim(X$x_train)
+#dim(X_train)
+#X_train = X$x_train[[1]][1:split,]
+#X_test = X$x_train[[1]][(split+1):nrow(X$x_train[[1]]),]
+#y_train = X$y[1:split]
+#y_test = X$y[(split+1):nrow(X$x_train[[1]])]
+#X_train <- array(data = as.numeric(unlist(X_train)),      dim = c(dim(X_train)[1],1,dim(X_train)[2]))
+#X_test <- array(data = as.numeric(unlist(X_test)),      dim = c(dim(X_test)[1],1,dim(X_test)[2]))
+#dim(X_train)
+#dim(X_test)
+#length(y_train)
+#length(y_test)
+#dim(X_train)
+#dim(X_test)
+```
+
+
+```{r}
+# Arbitrary parameters -> hyper-parameter tuning!!!!!
+lag <- 14
+batch_size <-128
+epoch_number <- 500
+
+#Input has to be a dataframe!
+#X <- data_handling(outcome=dplyr::select(economics,c("unemploy"))[1:500,],covariates = dplyr::select(economics,-c("date", "unemploy"))[1:500,],lag=lag) #works with this!
+#X <- data_handling(outcome=dplyr::select(df,c("deaths")),lag=lag) #works
+
+X <- data_handling(outcome=dplyr::select(df,c("deaths")),covariates = dplyr::select(df,c("facial_coverings")),lag=lag)
+
+model <- keras_model_sequential()
+model %>%
+  layer_lstm(units = 32, return_sequences = TRUE, input_shape = c(X$features,lag)) %>% 
+  layer_dropout(rate = 0.4) %>%
+  layer_lstm(units = 32, return_sequences = TRUE) %>%
+  layer_dropout(rate = 0.2) %>%
+  layer_lstm(units = 32) %>%
+  layer_dropout(rate = 0.2) %>%
+  layer_dense(units = 1, activation = 'relu')
+
+model %>%compile(
+    loss = 'mean_squared_error',
+    optimizer = 'adam',
+    metrics = c('mean_squared_error')
+  )
+
+# train
+model %>% fit( 
+  X$x_train , #X_train, 
+  X$y_train ,#y_train, 
+  batch_size = batch_size, 
+  epochs = epoch_number, 
+  shuffle = FALSE,
+  validation_split=0.2,
+  verbose=1
+)
+```
+Problem with NA validation:
+https://stackoverflow.com/questions/37232782/nan-loss-when-training-regression-network
+
+```{r}
+# Prediction:
+# Simply predicts the next day
+# Further To-Do:  Predict the next x days. Problem is that the covariates need also to be given!
+pred_out <- model %>% predict(X$x_train)
+
+plot(pred_out,type = "l",ylim =range(pred_out,X$y_train,na.rm = T))
+lines(X$y_train,col = "red")
+```
+
