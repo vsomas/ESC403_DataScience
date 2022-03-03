@@ -1,7 +1,7 @@
 
 ########################################################################
 # Data Analysis
-# Vithersan Somasundaram, Jerom Sepin, Nikolai Horozov and Gaby Stout
+# Vithersan Somasundaram, Jerome Sepin, Nikolai Horozov and Gaby Stout
 ########################################################################
 
 # Preparation ####
