@@ -12,6 +12,5 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r Importing cleand data, include=FALSE}
   # Importing Cleaned Data
 dd <- readRDS(file = "../data/COVID19.rds")
-
 ```
 
