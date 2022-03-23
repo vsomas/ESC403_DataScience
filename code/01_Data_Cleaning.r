@@ -43,3 +43,8 @@ for (i in 2:nrow(dd)){
   dd$per100[i] <- dd$prop[i] * 100000 
   dd$dailydeaths[i]  <- dd$deaths[i] - dd$deaths[i - 1]
 }
+
+#save to rda file 
+
+setwd("./data")
+saveRDS(dd, file = "COVID19.rds")
