@@ -8,7 +8,7 @@
 # Preparation ####
 
 # Clear the desk
-  # rm(list=ls())
+   rm(list=ls())
 
 # Load libraries
 library(tidyverse)
