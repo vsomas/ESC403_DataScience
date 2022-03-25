@@ -22,7 +22,18 @@ library(dplyr)
 
 # 1.Load data
 library(COVID19)
-df <- covid19(c("Switzerland"), level = 1)
+df <- covid19(c("Switzerland"), level = 2)#1: Schweiz, 2: Kanton
+df <- covid19(c("USA"), level = 2)#1: Schweiz, 2: Kanton
+
+USA_states <- unique(df$administrative_area_level_2)
+
+#43'000 Rows
+unique(df$administrative_area_level_1)
+unique(df$administrative_area_level_2)
+unique(df$administrative_area_level_3)
+
+
+
 df <- df[35:nrow(df),]
 
 #head(economics)
