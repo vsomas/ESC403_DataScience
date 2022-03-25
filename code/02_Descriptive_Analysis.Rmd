@@ -29,6 +29,10 @@ Calculating new variables for the Analysis:
 by(dd$deaths,dd$administrative_area_level_1, summary)
 
 ```
+
+
+
+
 ```{r daily_death, echo=FALSE}
 # Plot daily Deaths ####
 ggplot(data = dd, aes(x = date, y = dailydeaths, col=administrative_area_level_1, fill=administrative_area_level_1)) +
@@ -38,7 +42,7 @@ ggplot(data = dd, aes(x = date, y = dailydeaths, col=administrative_area_level_1
     labels = scales::trans_format("log10", scales::math_format(10^.x)))+
   #geom_line()+
   labs(x= "Date", y= "Daily New Deaths") +
-  theme_pubclean()
+  theme_linedraw()
   
 ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrative_area_level_1)) +
   geom_point(alpha= 1, size= 0.5) +  
@@ -46,7 +50,7 @@ ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrativ
   scale_y_log10(
     breaks = scales::trans_breaks("log10", function(x) 10^x),
     labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-  theme_pubclean()
+  theme_linedraw()
 
 ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrative_area_level_1)) +
   geom_point(alpha= 0.5, size= 0.5) +  
@@ -54,16 +58,9 @@ ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrativ
   scale_y_log10(
     breaks = scales::trans_breaks("log10", function(x) 10^x),
     labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-  theme_pubclean()
+  theme_linedraw()
 ```
 
-
-
-```{r}
-library(ggplot2)
-ggplot(dd, aes(x=date, y=deaths,col =as.factor(administrative_area_level_1)))+
-  geom_line()
-```
 
 
 
