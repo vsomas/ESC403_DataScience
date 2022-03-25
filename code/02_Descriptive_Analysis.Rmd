@@ -57,3 +57,13 @@ ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrativ
   theme_pubclean()
 ```
 
+
+
+```{r}
+library(ggplot2)
+ggplot(dd, aes(x=date, y=deaths,col =as.factor(administrative_area_level_1)))+
+  geom_line()
+```
+
+
+
