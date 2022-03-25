@@ -24,3 +24,13 @@ summary(dd. by = dd$administrative_area_level_1)
 
 ```
 
+
+
+```{r}
+library(ggplot2)
+ggplot(dd, aes(x=date, y=deaths,col =as.factor(administrative_area_level_1)))+
+  geom_line()
+```
+
+
+
