@@ -10,9 +10,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Importing cleand data, include=FALSE}
-  # Importing Cleaned Data
-    # Contains Switzerland and Zimbabwe:
+# Importing Cleaned Data
+  # Contains Switzerland and Zimbabwe:
 dd <- readRDS(file = "../data/COVID19.rds")
+
+# Loading Librarires:
+library(tidyverse)
+library(ggpubr)
+  
 ```
 
 Calculating new variables for the Analysis:
@@ -26,26 +31,24 @@ by(dd$deaths,dd$administrative_area_level_1, summary)
 ```
 ```{r daily_death, echo=FALSE}
 # Plot daily Deaths ####
-ggarrange(
-  ggplot(data = data, aes(x = date, y = deaths, col=country, fill=country)) +
-    geom_point(alpha= 1, size= 0.5) +
-    scale_y_log10(
-      breaks = scales::trans_breaks("log10", function(x) 10^x),
-      labels = scales::trans_format("log10", scales::math_format(10^.x)))+
-    #geom_line()+
-    labs(x= "Date", y= "Daily New Deaths") +
-    theme_pubclean(), 
+ggplot(data = dd, aes(x = date, y = dailydeaths, col=administrative_area_level_1, fill=administrative_area_level_1)) +
+  geom_point(alpha= 1, size= 0.5) +
+  scale_y_log10(
+    breaks = scales::trans_breaks("log10", function(x) 10^x),
+    labels = scales::trans_format("log10", scales::math_format(10^.x)))+
+  #geom_line()+
+  labs(x= "Date", y= "Daily New Deaths") +
+  theme_pubclean()
   
-  ggplot(data, aes(date, per100, col=country, fill=country)) +
-    geom_point(alpha= 1, size= 0.5) +  
-    labs(x= "Date", y= "Daily New Deaths per 100k People") + 
-    scale_y_log10(
-      breaks = scales::trans_breaks("log10", function(x) 10^x),
-      labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    theme_pubclean(),
-  nrow=1, common.legend = TRUE)
+ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrative_area_level_1)) +
+  geom_point(alpha= 1, size= 0.5) +  
+  labs(x= "Date", y= "Daily New Deaths per 100k People") + 
+  scale_y_log10(
+    breaks = scales::trans_breaks("log10", function(x) 10^x),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+  theme_pubclean()
 
-ggplot(data, aes(date, per100, col=country, fill=country)) +
+ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrative_area_level_1)) +
   geom_point(alpha= 0.5, size= 0.5) +  
   labs(x= "Date", y= "Daily New Deaths per 100k People") + 
   scale_y_log10(
