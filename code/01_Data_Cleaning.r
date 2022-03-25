@@ -22,9 +22,9 @@ library(visdat)
 
 # Import the data
   # Fixed until 01 March 2022
-dd <- covid19(level = 1, end = "2022-03-01", amr = FALSE) # Loading the whole dataset
+#dd <- covid19(level = 1, end = "2022-03-01", amr = FALSE) # Loading the whole dataset
                                       # Note: level : 1 country-level, 2 state-level
-# dd <- covid19(c("Switzerland",),level = 2, end = "2022-03-01", amr = TRUE) # Only Switzerland
+dd <- covid19(c("Switzerland","Zimbabwe"),level = 1, end = "2022-03-01", amr = TRUE) # Only Switzerland
   
 
 
