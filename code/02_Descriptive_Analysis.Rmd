@@ -17,7 +17,10 @@ dd <- readRDS(file = "../data/COVID19.rds")
 # Loading Librarires:
 library(tidyverse)
 library(ggpubr)
-  
+
+unique(dd$latitude)
+unique(dd$longitude)
+
 ```
 
 Calculating new variables for the Analysis:
@@ -61,6 +64,22 @@ ggplot(dd, aes(date, per100, col=administrative_area_level_1, fill=administrativ
   theme_linedraw()
 ```
 
+
+```{r}
+#maybe visualization somehow with this
+require(maps)
+library(fields)
+dd$longitude[1]
+n<-5
+longitude<-seq(from = -30,to=30, length.out =n)
+latitude <-seq(from = 30,to=70, length.out =n)
+grid <- as.matrix(expand.grid("longitude"=c(longitude),"latitude"=c(latitude)))
+z_value <-matrix(apply(grid, 1, function(x) x=x), n, n)
+
+image.plot(x=longitude, y=latitude, z=z_value,xlab = "Longitude", ylab ="Latitude",main = "Relative")
+map("world", add=T,main="World")
+
+```
 
 
 
