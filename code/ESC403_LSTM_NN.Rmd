@@ -14,35 +14,25 @@ https://keras.rstudio.com/articles/sequential_model.html
 # Data Wrangling
 ############################################################################################
 
-```{r}
+```{r Data preparation, include=FALSE}
+
+# Importing Cleaned Data
+  # Contains Switzerland and USA:
+dd <- readRDS(file = "../data/COVID19.rds")
+
+# Loading Librarires:
+library(tidyverse)
+library(ggpubr)
 library(keras)
 library(tensorflow)
 library(ggplot2)
 library(dplyr)
 
-# 1.Load data
-library(COVID19)
-df <- covid19(c("Switzerland","Zimbabwe"), level = 2)#1: Schweiz, 2: Kanton
-#df <- covid19(c("Germany"), level = 3)#1: Schweiz, 2: Kanton
-
-unique(df$administrative_area_level_2)
-unique(df$latitude)
-
-
-#43'000 Rows
-unique(df$administrative_area_level_1)
-unique(df$administrative_area_level_2)
-unique(df$administrative_area_level_3)
-
-
-
-df <- df[35:nrow(df),]
-
-#head(economics)
-#dim(economics)
+#unique(df$administrative_area_level_2)
+#unique(df$latitude)
 ```
 
-```{r}
+```{r ScaleFunction, include=FALSE}
 # function that scales every column to be between 0 and 1
 # Further To-Do: Check if scaling is really needed. If yes it should also give the variables to rescale later!
 myscale <- function(df){
@@ -55,7 +45,7 @@ myscale(economics[,c(2:4)])
 ```
 
 
-```{r}
+```{r DataHandling, include=FALSE}
 # Function data representation:
 outcome <- data.frame(economics[1:20,c("unemploy")])
 covariates <- economics[1:20,c("pop","psavert")]
