@@ -10,7 +10,6 @@ scaling <- function(y){
   return(y_scaled)
 }
 
-
 # Features and Label creator: 
 FeatLabCreator <- function(lag, y){
   dataX = c()
@@ -26,8 +25,7 @@ FeatLabCreator <- function(lag, y){
   return(list("Feature" = dataX,"Label" = dataY))
 }
 
-
-
+# Test for Training and validation:ß
 TrainValidTest <- function(Feature,Label, proportion){
   index <- as.integer(nrow(Feature)*proportion)                   # Proportion
   
