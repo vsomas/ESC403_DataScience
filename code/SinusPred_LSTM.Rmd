@@ -10,96 +10,131 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+# Preparation
+```{r Preparation}
 
-```{r}
+# Clean Data
+rm(list=ls())
+
 library(keras)
 library(tensorflow)
 library(ggplot2)
 library(dplyr)
+
+# Source Data
+source("00_Function_LSTM.r")
+
 ```
 
 
-
+# Data Generataion
 ```{r}
 # Create Data
 days <- 40+10
 x <-  c(0:(24*days))
-y <-  sin(x/(24/(2*pi) )) + 0.05*x
+#y <-  sin(x/(24/(2*pi) )) + 0.05*x
 y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4)
 #y <-  sin(x/(24/(2*pi) )) 
 plot(x,y,type = "l",xlab = "Days",ylab = "Temperature...")
 length(y)
 ```
 
+# Initiate Hyperparameter
+```{r HyperPara, echo=FALSE}
+lag = 24
+StepPred = 20 # Number of Prediction
 
-
-```{r}
-#scale data
-y_scaled <- (y-min(y))/(max(y)-min(y))
-#y_scaled <- y
-plot(y_scaled,type ="l")
 ```
 
 
-```{r}
-#features & labels
-lag <- 24
-dataX = c()
-dataY = c()
-for(i in 1:(length(y_scaled)-lag)){
-  dataX <- c(dataX, y_scaled[i:(i+lag-1)])
-  dataY <- c(dataY, y_scaled[i+lag])
-}
-dataX <- matrix(dataX, ncol = lag, byrow = T)
 
-dataX_test <- array(dataX[c((40*24):nrow(dataX))], dim = c( length( c((40*24):nrow(dataX)) ), lag, 1))
-dataX <- array(dataX[c(0:(40*24 -1)),], dim = c( 40*24 -1, lag, 1))
-dataY_test<- array(dataY[c((40*24):length(dataY))], dim = c( length( c((40*24):length(dataY)) ), 1, 1))
-dataY <- array(dataY[c(0:(40*24 -1))], dim = c( 40*24 -1, 1, 1))
-
-
-dim(dataX);dim(dataX_test);dim(dataY);dim(dataY_test)
+# Scaling
+```{r Scaling, echo=FALSE}
+scaledY <- scaling(y = y)
+plot(scaledY,type ="l")
 ```
 
+# Test Data set
+```{r TestData, echo=FALSE}
 
-```{r}
+
+test1 <- scaledY[1:lag] # Untere Ende
+test2 <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Obere Ende
+
+scaledY <- scaledY[(lag+1):(length(scaledY)-lag-StepPred)] # Dataset without Test Data
+
+```
+
+# Feature and Label
+```{r Feature and Label, echo = FALSE}
+
+# Create Array for Feature and Label
+Feature <- FeatLabCreator(lag = lag , y = scaledY)[["Feature"]]
+Label <- FeatLabCreator(lag = lag, y = scaledY)[["Label"]]
+
+```
+
+# Split Data into Train and Validation
+
+```{r TrainValidation, echo=FALSE}
+
+# Creating Train and Validation lists:
+TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 0.8)
+
+```
+
+# Model Prediction
+```{r ModelPrediction}
+
 model <- keras_model_sequential()
+
 model %>%
-  layer_lstm(units = 32,input_shape = c(lag,1), return_sequences = F ) %>% #32, return_sequences = T
-  #layer_dense(units = 1,activation = "relu")%>%
-  #layer_dense(units = 1,activation = "relu")%>%
-  #layer_lstm(units = 32, return_sequences = F ) %>% #32, return_sequences = T
-  layer_dense(units = 1)
+  layer_lstm(units = 32,input_shape = c(lag, 1), return_sequences = F ) %>%
+    layer_dense(units = 1)
+
 summary(model)
+
+
 ```
 
 
-```{r}
+# Compile the Neural Network
+```{r Compile, echo = FALSE}
+
 model %>%compile(
     loss = 'mean_squared_error',
-    #optimizer = optimizer_adamax(learning_rate = 0.2),
     optimizer = "adam",
     metrics = c('mean_squared_error')
   )
 ```
 
+# Train the Neural Network
+```{r Train, echo = FALSE}
 
-```{r}
 # train
-set.seed(13)
-history_model <- model %>% fit( 
-    dataX ,
-    dataY ,
+set.seed(1234)
+
+history_model <- model %>% fit(TrainValid_dat$Feature_Train, TrainValid_dat$Label_Train,
     batch_size = 1, 
     epochs = 100, 
-    shuffle = T,
-    verbose=TRUE, #1shows,
-    validation_data = list(dataX_test,dataY_test),
-    callbacks = list(
-                      callback_reduce_lr_on_plateau(monitor = "val_loss", factor = 0.1,patience = 10),
-                      callback_early_stopping(monitor = "val_loss",min_delta = 0,patience = 30)
+    shuffle = TRUE,
+    verbose = TRUE, # 1shows,
+    validation_data = list(TrainValid_dat$Feature_Validation,
+                           TrainValid_dat$Label_Validation),
+    callbacks = list(callback_reduce_lr_on_plateau(monitor = "val_loss",
+                                                   factor = 0.1,
+                                                   patience = 10),
+                     callback_early_stopping(monitor = "val_loss",
+                                             min_delta = 0,
+                                             patience = 30)
                       )
 )
+```
+
+# Evaluation of the Nerural Network
+```{r Evaluation}
+
+
 ```
 
 ```{r}
