@@ -60,6 +60,15 @@ plot(scaledY,type ="l")
 # Run
 
 ```{r}
+<<<<<<< HEAD
+
+LSTM_sinus_prediction(lag=12,StepPred, lstm1_units=12,TrainValid_dat,test1,test2)
+
+
+
+
+=======
+>>>>>>> c10400e36b609c4d2a4b469c3fe0cf29735572f9
 parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
 parameter_grid <- parameter_grid[1:2,]
 best_model_MSE <- Inf
