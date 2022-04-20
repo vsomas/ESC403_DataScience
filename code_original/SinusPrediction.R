@@ -60,10 +60,10 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   
   # backscale
   prediction1 <- prediction1*(max(y)-min(y)) + min(y)
-  prediction1 <- prediction1*(max(y)-min(y)) + min(y)
+  prediction2 <- prediction2*(max(y)-min(y)) + min(y)
   
   true1 <- true1*(max(y)-min(y)) + min(y)
-  true2 <- true1*(max(y)-min(y)) + min(y)
+  true2 <- true2*(max(y)-min(y)) + min(y)
   
   # mean squared error
   mse1 <- sum( (prediction1-true1)^2   )/length(prediction1)

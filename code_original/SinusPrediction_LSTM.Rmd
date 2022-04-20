@@ -30,7 +30,7 @@ source("SinusPrediction.R")
 
 
 # Data Generataion
-```{r}
+```{r DataGeneration, echo = FALSE}
 # Create Data
 days <- 40+10
 x <-  c(0:(24*days))
@@ -43,13 +43,13 @@ length(y)
 
 # Initiate Hyperparameter
 ```{r HyperPara, echo=FALSE}
-lag = 24
+lag = 12
 StepPred = 20 # Number of Prediction
 lstm1_units = 32 
 
 
 lag_grid <- c(12, 24, 36, 48, 60)
-lstm1_units_grid <- c(16, 32,48, 64,124)
+lstm1_units_grid <- c(3, 6, 9, 12, 15)
 ```
 
 # Scaling
@@ -57,8 +57,8 @@ lstm1_units_grid <- c(16, 32,48, 64,124)
 scaledY <- scaling(y = y)
 plot(scaledY,type ="l")
 ```
-# Run
 
+# Run the Neural Netowrk
 ```{r}
 parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
 parameter_grid <- parameter_grid[1:2,]
@@ -69,6 +69,7 @@ for(i in 1:nrow(parameter_grid)){
                                lstm1_units=as.integer(parameter_grid[i,2]),
                                TrainValid_dat,test1,test2,
                                scaledY = scaledY, y=y )
+  print(res$results)
   #save best model:
   if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
     best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
@@ -82,8 +83,35 @@ for(i in 1:nrow(parameter_grid)){
 
 # Save Hyperparameters & Performance
 
-```{r}
+```{r result}
+
 df_results
+
+# Plotting the sinusfunction of the best model:
+  # Lower end
+test_lwrEnd <- scaledY[1:(lag+StepPred)]
+pred_lwrEnd <- pred_steps(model = model_saved, start = array(test_lwrEnd[1:lag],dim = c(1,lag,1)),StepPred = StepPred)
+pred_lwrEnd <- pred_lwrEnd*(max(y)-min(y)) + min(y)                   # Backscaling
+true_lwrEnd <- test_lwrEnd[(lag+1):length(test_lwrEnd)]
+true_lwrEnd <- true_lwrEnd*(max(y)-min(y)) + min(y)
+
+
+
+
+  # Upper end
+test_uprEnd <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Upper End
+pred_uprEnd <- pred_steps(model = model_saved, start=test_uprEnd[1:lag], StepPred=StepPred)
+true_uprEnd <- test_uprEnd[(lag+1):length(test_uprEnd)]
+pred_uprEnd <- pred_uprEnd*(max(y)-min(y)) + min(y)                      # Backscaling
+
+
+par(mfrow=c(2,1))
+plot(true_lwrEnd, type = "l", col = "red", ylim =range(pred_lwrEnd,true_lwrEnd))
+lines(pred_lwrEnd, col = "blue")
+
+plot(true_uprEnd, type = "l", col = "red", ylim =range(pred_uprEnd,true_uprEnd))
+lines(pred_uprEnd, col = "blue")
+
 ```
 
 
