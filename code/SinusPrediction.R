@@ -36,7 +36,7 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   
   history_model <- model %>% fit(TrainValid_dat$Feature_Train, TrainValid_dat$Label_Train,
                                  batch_size = 1, 
-                                 epochs = 5, 
+                                 epochs = 100, 
                                  shuffle = TRUE,
                                  verbose = TRUE, # 1shows,
                                  validation_data = list(TrainValid_dat$Feature_Validation,
@@ -70,7 +70,7 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   mse2 <- sum( (prediction2-true2)^2   )/length(prediction2)
   
   # Save Hyperparameters & Performance
-  results <- list("results"=c("lag"=lag, "StepPred"=StepPred, "lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2),"model"=model)
+  results <- list("results"=c("lag"=lag, "StepPred"=StepPred, "lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2),"model"=model,"history"=as.data.frame(history_model))
   
   return(results)
 }
