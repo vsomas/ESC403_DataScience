@@ -57,63 +57,42 @@ lstm1_units_grid <- c(16, 32,48, 64,124)
 scaledY <- scaling(y = y)
 plot(scaledY,type ="l")
 ```
+# Run
 
-# Test Data set
-```{r TestData, echo=FALSE}
-test1 <- scaledY[1:(lag+StepPred)] # Lower End
-test2 <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Upper End
-scaledY <- scaledY[(lag+1):(length(scaledY)-StepPred)] # Dataset without Test Data
-```
-
-# Feature and Label
-```{r Feature and Label, echo = FALSE}
-
-# Create Array for Feature and Label
-Feature <- FeatLabCreator(lag = lag , y = scaledY)[["Feature"]]
-Label <- FeatLabCreator(lag = lag, y = scaledY)[["Label"]]
-
-```
-
-# Split Data into Train and Validation
-```{r TrainValidation, echo=FALSE}
-
-# Creating Train and Validation lists:
-TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 0.8)
-
-```
-
-
-# Apply Prediction of Sinus Function
 ```{r}
+<<<<<<< HEAD
 
 LSTM_sinus_prediction(lag=12,StepPred, lstm1_units=12,TrainValid_dat,test1,test2)
 
 
 
 
+=======
+>>>>>>> c10400e36b609c4d2a4b469c3fe0cf29735572f9
 parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
-res
+parameter_grid <- parameter_grid[1:2,]
 best_model_MSE <- Inf
+df_results <- c()
 for(i in 1:nrow(parameter_grid)){
-  res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,lstm1_units=as.integer(parameter_grid[i,2]),TrainValid_dat,test1,test2,epochs = 5 )
+  res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,
+                               lstm1_units=as.integer(parameter_grid[i,2]),
+                               TrainValid_dat,test1,test2,
+                               scaledY = scaledY, y=y )
   #save best model:
-  if(  sum(res$results[c("MSE1","MSE2")])  < best_model_MSE){
+  if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
     best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
-    save_model_hdf5(res$history, "model.h5")# Whole model saving
-    
+    save_model_hdf5(res$model, "model.h5")# Whole model saving
   }
-}
-
+  df_results  <- rbind(df_results, res$results)
+} 
 ```
-
 
 
 
 # Save Hyperparameters & Performance
 
 ```{r}
-results <- data.frame("lag"=lag, "StepPred"=StepPred, "lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2)
-write_csv()
+df_results
 ```
 
 
@@ -132,41 +111,5 @@ prediction_saved <- model_saved %>% predict(dataX)
 ```
 
 
-```{r}
-prediction <- model %>% predict(dataX)
-prediction_rev_scaled <- prediction*(max(y)-min(y)) + min(y)
-plot(prediction_rev_scaled[1:100],type = "l" ,ylim=range(prediction_rev_scaled[1:100], y[(lag+1):(100+lag)]))
-lines(y[(lag+1):(100+lag)],type = "l",col = "blue")
-legend("center", lty = 1, col =c("black","blue"), legend =c("Prediction", "True"))
-```
-
-```{r}
-start <- dataX[1,,]
-start_arr <- array(start,dim= c(1,lag,1))
-hist <- c()
-
-next_pred <- model %>% predict(start_arr)
-steps_pred <- 150
-for(i in 1:steps_pred){
-  next_pred <- model %>% predict(start_arr)
-  hist <- c(hist,next_pred)
-  start <- c(start[2:length(start)],next_pred)
-  start_arr <- array(start,dim= c(1,lag,1))
-}
-
-plot(y=hist,x=c((lag+1):(lag+length(hist))), type = "l",ylim = c(-0.5,0.5), xlim = c(1,(lag+steps_pred)))
-lines(y=y_scaled[(lag+1):(lag+steps_pred)], x= (lag+1):(lag+steps_pred),col = "red")
-lines(y=dataX[1,,], x= 1:lag,col = "blue",lwd = 3)
-abline(h = hist[length(hist)] ,lty = 3, col = "gray")
-legend("bottom", lty = 1, col =c("black","red","blue"), legend =c("Prediction", "True","Start"))
-
-
-eval_pred <- sum((hist-y_scaled[(lag+1):(lag+steps_pred)])^2)/length(hist)
-```
-
-
-```{r}
-
-```
 
 

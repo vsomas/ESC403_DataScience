@@ -1,10 +1,27 @@
-library(keras)
-library(tensorflow)
-library(ggplot2)
-library(dplyr)
 
+LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2, scaledY,y ){
+  
+  # Test Data set
+  test1 <- scaledY[1:(lag+StepPred)] # Lower End
+  test2 <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Upper End
+  scaledY <- scaledY[(lag+1):(length(scaledY)-StepPred)] # Dataset without Test Data
+  
+  # Feature and Label
 
+<<<<<<< HEAD
 LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2){
+=======
+  # Create Array for Feature and Label
+  Feature <- FeatLabCreator(lag = lag , y = scaledY)[["Feature"]]
+  Label <- FeatLabCreator(lag = lag, y = scaledY)[["Label"]]
+  
+  
+  # Split Data into Train and Validation
+  # Creating Train and Validation lists:
+  TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 0.8)
+  
+  
+>>>>>>> c10400e36b609c4d2a4b469c3fe0cf29735572f9
   # Model Prediction
   model <- keras_model_sequential()
   model %>%
@@ -23,7 +40,7 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   
   history_model <- model %>% fit(TrainValid_dat$Feature_Train, TrainValid_dat$Label_Train,
                                  batch_size = 1, 
-                                 epochs = 5, 
+                                 epochs = 100, 
                                  shuffle = TRUE,
                                  verbose = TRUE, # 1shows,
                                  validation_data = list(TrainValid_dat$Feature_Validation,
@@ -57,8 +74,12 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   mse2 <- sum( (prediction2-true2)^2   )/length(prediction2)
   
   # Save Hyperparameters & Performance
+<<<<<<< HEAD
   results <- list("results"=c("lag"=lag,"StepPred"=StepPred,"lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2),"model"=model)
+=======
+  results <- list("results"=c("lag"=lag, "StepPred"=StepPred, "lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2),"model"=model,"history"=as.data.frame(history_model))
+>>>>>>> c10400e36b609c4d2a4b469c3fe0cf29735572f9
   
   return(results)
 }
-#,"history"=as.data.frame(history_model)
+
