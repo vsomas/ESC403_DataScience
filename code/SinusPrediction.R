@@ -4,7 +4,7 @@ library(ggplot2)
 library(dplyr)
 
 
-LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2,y ){
+LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2){
   # Model Prediction
   model <- keras_model_sequential()
   model %>%
@@ -57,7 +57,7 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   mse2 <- sum( (prediction2-true2)^2   )/length(prediction2)
   
   # Save Hyperparameters & Performance
-  results <- list("results"=c("lag"=lag,  "lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2,"StepPred"=StepPred),"model"=model)
+  results <- list("results"=c("lag"=lag,"StepPred"=StepPred,"lstm1_units" =lstm1_units, "MSE1"=mse1,"MSE2"=mse2),"model"=model)
   
   return(results)
 }

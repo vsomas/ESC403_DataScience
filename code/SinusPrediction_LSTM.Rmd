@@ -85,11 +85,8 @@ TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 
 
 # Apply Prediction of Sinus Function
 ```{r}
-source("SinusPrediction.R")
-res <- LSTM_sinus_prediction(lag=12,StepPred, lstm1_units=12,TrainValid_dat,test1,test2 )
 
-
-LSTM_sinus_prediction(lag=12, StepPred=20,lstm1_units=12,TrainValid_dat=TrainValid_dat,test1=test1,test2=test2,y=y )
+LSTM_sinus_prediction(lag=12,StepPred, lstm1_units=12,TrainValid_dat,test1,test2)
 
 
 
