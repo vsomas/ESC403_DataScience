@@ -58,55 +58,37 @@ scaledY <- scaling(y = y)
 plot(scaledY,type ="l")
 ```
 
-# Test Data set
-```{r TestData, echo=FALSE}
-test1 <- scaledY[1:(lag+StepPred)] # Lower End
-test2 <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Upper End
-scaledY <- scaledY[(lag+1):(length(scaledY)-StepPred)] # Dataset without Test Data
+```{r}
+
+parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
+best_model_MSE <- Inf
+for(i in 1:nrow(parameter_grid)){
+  res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,
+                               lstm1_units=as.integer(parameter_grid[i,2]),
+                               TrainValid_dat,test1,test2,
+                               scaledY = scaledY, y=y )
+  #save best model:
+  if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
+    best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
+    #save_model_hdf5(res$history, "model.h5")# Whole model saving
+  }
+} 
+
+#res <- LSTM_sinus_prediction(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2, scaledY = scaledY, y=y )
 ```
 
-# Feature and Label
-```{r Feature and Label, echo = FALSE}
 
-# Create Array for Feature and Label
-Feature <- FeatLabCreator(lag = lag , y = scaledY)[["Feature"]]
-Label <- FeatLabCreator(lag = lag, y = scaledY)[["Label"]]
 
-```
 
-# Split Data into Train and Validation
-```{r TrainValidation, echo=FALSE}
 
-# Creating Train and Validation lists:
-TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 0.8)
 
-```
+
+
 
 
 # Apply Prediction of Sinus Function
 ```{r}
-source("SinusPrediction.R")
-res <- LSTM_sinus_prediction(lag=12,StepPred, lstm1_units=12,TrainValid_dat,test1,test2 )
-
-
-LSTM_sinus_prediction(lag=12, StepPred=20,lstm1_units=12,TrainValid_dat=TrainValid_dat,test1=test1,test2=test2,y=y )
-
-
-
-
-parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
-res
-best_model_MSE <- Inf
-for(i in 1:nrow(parameter_grid)){
-  res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,lstm1_units=as.integer(parameter_grid[i,2]),TrainValid_dat,test1,test2,epochs = 5 )
-  #save best model:
-  if(  sum(res$results[c("MSE1","MSE2")])  < best_model_MSE){
-    best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
-    save_model_hdf5(res$history, "model.h5")# Whole model saving
-    
-  }
-}
-
+res <- LSTM_sinus_prediction(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2 )
 ```
 
 
