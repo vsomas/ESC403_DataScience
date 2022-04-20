@@ -43,10 +43,7 @@ length(y)
 ```{r HyperPara, echo=FALSE}
 lag = 24
 StepPred = 20 # Number of Prediction
-
 ```
-
-
 
 # Scaling
 ```{r Scaling, echo=FALSE}
@@ -56,8 +53,6 @@ plot(scaledY,type ="l")
 
 # Test Data set
 ```{r TestData, echo=FALSE}
-
-
 test1 <- scaledY[1:lag] # Untere Ende
 test2 <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Obere Ende
 
@@ -75,7 +70,6 @@ Label <- FeatLabCreator(lag = lag, y = scaledY)[["Label"]]
 ```
 
 # Split Data into Train and Validation
-
 ```{r TrainValidation, echo=FALSE}
 
 # Creating Train and Validation lists:
