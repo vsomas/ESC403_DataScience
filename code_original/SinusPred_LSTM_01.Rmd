@@ -1,0 +1,176 @@
+---
+title: "ESC403_SinusPred"
+author: "Jerome Sepin"
+date: "14 4 2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(keras)
+library(tensorflow)
+library(ggplot2)
+library(dplyr)
+```
+
+
+
+```{r}
+# Create Data
+set.seed(133)
+days <- 40+10
+x <-  c(0:(24*days))
+y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4) + rnorm(n=length(x),mean = 0, sd =0.005)
+#y <-  sin(x/(24/(2*pi) )) 
+plot(x,y,type = "l",xlab = "Days",ylab = "Temperature...")
+length(y)
+```
+
+
+
+```{r}
+#scale data
+y_scaled <- (y-min(y))/(max(y)-min(y))
+#y_scaled <- y
+plot(y_scaled,type ="l")
+```
+
+
+```{r}
+#features & labels
+lag <- 48
+dataX = c()
+dataY = c()
+for(i in 1:(length(y_scaled)-lag)){
+  dataX <- c(dataX, y_scaled[i:(i+lag-1)])
+  dataY <- c(dataY, y_scaled[i+lag])
+}
+dataX_ordered <- matrix(dataX, ncol = lag, byrow = T)
+#shuffle
+dataX <- dataX_ordered[sample(1:nrow(dataX_ordered)),]
+dataX <- dataX_ordered#no shuffle is better!
+# Train & Validation data sets
+dataX_train <- array(dataX[c(1:as.integer(nrow(dataX)*0.8)),], dim = c(as.integer(nrow(dataX)*0.8), lag, 1))
+dataX_val   <- array(dataX[c((as.integer(nrow(dataX)*0.8)+1):nrow(dataX)),], dim = c(nrow(dataX)-as.integer(nrow(dataX)*0.8) , lag, 1))
+dataY_train <- array(dataY[c(1:as.integer(nrow(dataX)*0.8))], dim = c(as.integer(nrow(dataX)*0.8), 1, 1))
+dataY_val   <- array(dataY[c((as.integer(nrow(dataX)*0.8)+1):nrow(dataX))], dim = c(nrow(dataX)-as.integer(nrow(dataX)*0.8) , 1, 1))
+
+dim(dataX_train);dim(dataX_val);dim(dataY_train);dim(dataY_val)
+```
+
+
+```{r}
+#Model
+model <- keras_model_sequential()
+model %>%
+  layer_lstm(units = 32,input_shape = c(lag,1), return_sequences = T ) %>%
+  layer_dense(units = 1)
+summary(model)
+
+#compile model
+model %>%compile(
+    loss = 'mean_squared_error',
+    optimizer = "adam",
+    metrics = c('mean_squared_error')
+  )
+```
+
+
+```{r}
+# train
+set.seed(13)
+history_model <- model %>% fit( 
+    dataX_train ,
+    dataY_train ,
+    batch_size = 1, 
+    epochs = 100, 
+    shuffle = T,
+    verbose=TRUE, #1shows,
+    validation_data = list(dataX_val,dataY_val),
+    callbacks = list(
+                      callback_reduce_lr_on_plateau(monitor = "val_loss", factor = 0.1,patience = 10),
+                      callback_early_stopping(monitor = "val_loss",min_delta = 0,patience = 30)
+                      )
+)
+```
+
+```{r}
+save_model_hdf5(model, "model.h5")# Whole model saving
+history_df <- as.data.frame(history_model)
+write.csv(history_df,"history_df", row.names = FALSE)
+
+#load model
+model_saved <- load_model_hdf5("model.h5")
+model_saved %>% evaluate(dataX_val, dataY_val)
+prediction_saved <- model_saved %>% predict(dataX_train)
+```
+
+
+```{r}
+prediction <- model %>% predict(dataX_train)
+prediction_rev_scaled <- prediction*(max(y)-min(y)) + min(y)
+plot(prediction_rev_scaled[1:100],type = "l" ,ylim=range(prediction_rev_scaled[1:100], y[(lag+1):(100+lag)]))
+lines(y[(lag+1):(100+lag)],type = "l",col = "blue")
+legend("center", lty = 1, col =c("black","blue"), legend =c("Prediction", "True"))
+```
+
+```{r}
+start <- array(dataX[c(1:lag+1)], dim = c( 1, lag, 1)) #for in the end
+start_arr <- array(start,dim= c(1,lag,1))
+hist <- c()
+#next_pred <- model %>% predict(start_arr)
+steps_pred <- 100
+for(i in 1:steps_pred){
+  next_pred <- model %>% predict(start_arr)
+  hist <- c(hist,next_pred)
+  start <- c(start[2:length(start)],next_pred)
+  start_arr <- array(start,dim= c(1,lag,1))
+}
+#y_scaled <- (y-min(y))/(max(y)-min(y))
+plot(y=hist*((max(y)-min(y))) + min(y),x=c((lag+1):(lag+length(hist))), type = "l", xlim = c(1,(lag+steps_pred)), ylim = range(y_scaled[(lag+1):(lag+steps_pred)])*((max(y)-min(y))) + min(y) )
+lines(y=y_scaled[(lag+1):(lag+steps_pred)]*((max(y)-min(y))) + min(y), x= (lag+1):(lag+steps_pred),col = "red")
+lines(y=dataX[c(1:lag)]*((max(y)-min(y))) + min(y), x= 1:lag,col = "blue",lwd = 3)
+legend("topleft", lty = 1, col =c("black","red","blue"), legend =c("Prediction", "True","Start"))
+
+
+eval_pred <- sum((hist-y_scaled[(lag+1):(lag+steps_pred)])^2)/length(hist)
+```
+
+
+```{r}
+steps_pred <- 100
+
+start_or <- y_scaled[(length(y_scaled)-lag-steps_pred+1):length(y_scaled)]
+start <- start_or[1:lag]
+start_arr <- array(start[1:lag],dim= c(1,lag,1))
+hist <- c()
+for(i in 1:steps_pred){
+  #print("Starting:")
+  #print(start_arr)
+  next_pred <- model %>% predict(start_arr)
+  #print("Pred:")
+  #print(next_pred)
+  hist <- c(hist,next_pred)
+  start <- c(start[2:length(start)],next_pred)
+  start_arr <- array(start,dim= c(1,lag,1))
+}
+#y_scaled <- (y-min(y))/(max(y)-min(y))
+plot(y=hist*((max(y)-min(y))) +min(y),x=c((lag+1):(lag+length(hist))), type = "l",xlim = c(1,(lag+steps_pred)), ylim = range(start_or*((max(y)-min(y))) +min(y), hist*((max(y)-min(y))) +min(y)))
+lines(start_or*((max(y)-min(y))) +min(y),col = "red")
+lines(start_or[1:lag]*((max(y)-min(y))) +min(y), col = "blue")
+legend("topleft", lty = 1, col =c("black","red","blue"), legend =c("Prediction", "True","Start"))
+
+eval_pred <- sum((hist-y_scaled[(lag+1):(lag+steps_pred)])^2)/length(hist)
+```
+
+
+
+```{r}
+
+```
+
