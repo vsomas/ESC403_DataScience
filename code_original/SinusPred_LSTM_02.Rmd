@@ -1,0 +1,154 @@
+---
+title: "ESC403_SinusPred"
+author: "Jerome Sepin"
+date: "14 4 2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(keras)
+library(tensorflow)
+library(ggplot2)
+library(dplyr)
+```
+
+
+
+```{r}
+# Create Data
+days <- 365*5
+x <-  c(0:(24*days))#hours
+y1 <-  sin(x/(24/(2*pi) ))
+y2 <-  sin(x/(24*365/(2*pi) ))
+y <- y1+y2+ 0.0000005*x^(1.5)
+plot(x,y,type = "l",xlab = "hours",ylab = "Temperature...")
+
+#y <-  sin(x/(24/(2*pi) )) + 0.05*x
+#y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4)
+length(y)
+```
+
+
+
+```{r}
+#scale data
+y_scaled <- (y-min(y))/(max(y)-min(y))
+#y_scaled <- y
+plot(y_scaled,type ="l")
+```
+
+
+```{r}
+#features & labels
+lag <- 24
+dataX = c()
+dataY = c()
+for(i in 1:(length(y_scaled)-lag)){
+  dataX <- c(dataX, y_scaled[i:(i+lag-1)])
+  dataY <- c(dataY, y_scaled[i+lag])
+}
+dataX <- matrix(dataX, ncol = lag, byrow = T)
+
+dataX_test <- array(dataX[c((4*365*24):nrow(dataX))], dim = c( length( c((4*365*24):nrow(dataX)) ), lag, 1))
+dataX <- array(dataX[c(0:(4*365*24 -1)),], dim = c( 4*365*24 -1, lag, 1))
+dataY_test<- array(dataY[c((4*365*24):length(dataY))], dim = c( length( c((4*365*24):length(dataY)) ), 1, 1))
+dataY <- array(dataY[c(0:(4*365*24 -1))], dim = c( 4*365*24 -1, 1, 1))
+
+
+dim(dataX);dim(dataX_test);dim(dataY);dim(dataY_test)
+```
+
+
+```{r}
+model <- keras_model_sequential()
+model %>%
+  layer_lstm(units = 32,input_shape = c(lag,1), return_sequences = F ) %>% 
+  layer_dense(units = 1)
+summary(model)
+```
+
+
+```{r}
+model %>%compile(
+    loss = 'mean_squared_error',
+    #optimizer = optimizer_adamax(learning_rate = 0.2),
+    optimizer = "adam",
+    metrics = c('mean_squared_error')
+  )
+```
+
+
+```{r}
+# train
+set.seed(13)
+history_model <- model %>% fit( 
+    dataX ,
+    dataY ,
+    batch_size = 1, 
+    epochs = 100, 
+    shuffle = T,
+    verbose=TRUE, #1shows,
+    validation_data = list(dataX_test,dataY_test),
+    callbacks = list(
+                      callback_reduce_lr_on_plateau(monitor = "val_loss", factor = 0.1,patience = 10),
+                      callback_early_stopping(monitor = "val_loss",min_delta = 0,patience = 30)
+                      )
+)
+```
+
+```{r}
+save_model_hdf5(model, "model.h5")# Whole model saving
+history_df <- as.data.frame(history_model)
+write.csv(history_df,"history_df", row.names = FALSE)
+
+#load model
+model_saved <- load_model_hdf5("model.h5")
+model_saved %>% evaluate(dataX_test, dataY_test)
+prediction_saved <- model_saved %>% predict(dataX)
+```
+
+
+```{r}
+prediction <- model %>% predict(dataX)
+prediction_rev_scaled <- prediction*(max(y)-min(y)) + min(y)
+plot(prediction_rev_scaled[1:100],type = "l" ,ylim=range(prediction_rev_scaled[1:100], y[(lag+1):(100+lag)]))
+lines(y[(lag+1):(100+lag)],type = "l",col = "blue")
+legend("center", lty = 1, col =c("black","blue"), legend =c("Prediction", "True"))
+```
+
+```{r}
+start <- dataX[1,,]
+start_arr <- array(start,dim= c(1,lag,1))
+hist <- c()
+
+next_pred <- model %>% predict(start_arr)
+steps_pred <- 150
+for(i in 1:steps_pred){
+  next_pred <- model %>% predict(start_arr)
+  hist <- c(hist,next_pred)
+  start <- c(start[2:length(start)],next_pred)
+  start_arr <- array(start,dim= c(1,lag,1))
+}
+
+plot(y=hist,x=c((lag+1):(lag+length(hist))), type = "l",ylim = c(-0.5,0.5), xlim = c(1,(lag+steps_pred)))
+lines(y=y_scaled[(lag+1):(lag+steps_pred)], x= (lag+1):(lag+steps_pred),col = "red")
+lines(y=dataX[1,,], x= 1:lag,col = "blue",lwd = 3)
+abline(h = hist[length(hist)] ,lty = 3, col = "gray")
+legend("bottom", lty = 1, col =c("black","red","blue"), legend =c("Prediction", "True","Start"))
+
+
+eval_pred <- sum((hist-y_scaled[(lag+1):(lag+steps_pred)])^2)/length(hist)
+```
+
+
+```{r}
+
+```
+
+
