@@ -15,9 +15,9 @@ FeatLabCreator <- function(lag, y){
   dataX = c()
   dataY = c()
 
-  for(i in 1:(length(y_scaled)-lag)){
-    dataX <- c(dataX, y_scaled[i:(i+lag-1)])    # Feature
-    dataY <- c(dataY, y_scaled[i+lag])          # Label
+  for(i in 1:(length(y)-lag)){
+    dataX <- c(dataX, y[i:(i+lag-1)])    # Feature
+    dataY <- c(dataY, y[i+lag])          # Label
   }
   dataX <- matrix(dataX, ncol = lag, byrow = T) # Feature as Matrix
   dataX <- array(dataX, dim = c(nrow(dataX), lag, 1))
@@ -25,7 +25,7 @@ FeatLabCreator <- function(lag, y){
   return(list("Feature" = dataX,"Label" = dataY))
 }
 
-# Test for Training and validation:ß
+# Test for Training and validation:
 TrainValidTest <- function(Feature,Label, proportion){
   index <- as.integer(nrow(Feature)*proportion)                   # Proportion
   
@@ -47,3 +47,20 @@ TrainValidTest <- function(Feature,Label, proportion){
               "Label_Train" = Train_Label,
               "Label_Validation" = Validation_Label))
 }
+
+
+# Prediction:
+pred_steps <- function(model, start, StepPred){
+  start_arr <- array(start, dim = c(1,length(start),1))
+  hist <- c()
+  for(i in 1:StepPred){
+    next_pred <- model %>% predict(start_arr)
+    hist <- c(hist,next_pred)
+    start <- c(start[2:length(start)],next_pred)
+    start_arr <- array(start,dim= c(1,length(start),1))
+  }
+  return(hist)
+}
+
+
+
