@@ -86,31 +86,40 @@ for(i in 1:nrow(parameter_grid)){
 ```{r result}
 
 df_results
+```
+
 
 # Plotting the sinusfunction of the best model:
+```{r Plotting, echo = FALSE}
   # Lower end
-test_lwrEnd <- scaledY[1:(lag+StepPred)]
-pred_lwrEnd <- pred_steps(model = model_saved, start = array(test_lwrEnd[1:lag],dim = c(1,lag,1)),StepPred = StepPred)
-pred_lwrEnd <- pred_lwrEnd*(max(y)-min(y)) + min(y)                   # Backscaling
-true_lwrEnd <- test_lwrEnd[(lag+1):length(test_lwrEnd)]
-true_lwrEnd <- true_lwrEnd*(max(y)-min(y)) + min(y)
-
-
+test_lwrEnd <- scaledY[1:(lag+StepPred)]                              # scaled test
+pred_lwrEnd <- pred_steps(model = model_saved, start = array(test_lwrEnd[1:lag],dim = c(1,lag,1)),StepPred = StepPred)                                                             # Prediction
+true_lwrEnd <- test_lwrEnd[(lag+1):length(test_lwrEnd)]               # True
+pred_lwrEnd <- pred_lwrEnd*(max(y)-min(y)) + min(y)                   # Back scaling
+true_lwrEnd <- true_lwrEnd*(max(y)-min(y)) + min(y)                   # Back scaling
 
 
   # Upper end
-test_uprEnd <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Upper End
-pred_uprEnd <- pred_steps(model = model_saved, start=test_uprEnd[1:lag], StepPred=StepPred)
-true_uprEnd <- test_uprEnd[(lag+1):length(test_uprEnd)]
-pred_uprEnd <- pred_uprEnd*(max(y)-min(y)) + min(y)                      # Backscaling
+test_uprEnd <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)]                    # scaled test
+pred_uprEnd <- pred_steps(model = model_saved, start=test_uprEnd[1:lag], StepPred=StepPred) # Prediction
+true_uprEnd <- test_uprEnd[(lag+1):length(test_uprEnd)]                                     # True
+pred_uprEnd <- pred_uprEnd*(max(y)-min(y)) + min(y)                                         # Back scaling
+true_uprEnd <- true_uprEnd*(max(y)-min(y)) + min(y)                                         # Back scaling
 
+  plot(true_uprEnd)
 
-par(mfrow=c(2,1))
-plot(true_lwrEnd, type = "l", col = "red", ylim =range(pred_lwrEnd,true_lwrEnd))
+par(mfrow=c(1,2))
+plot(true_lwrEnd, type = "l", col = "red", ylim =range(pred_lwrEnd,true_lwrEnd), ylab = "Lower End")
 lines(pred_lwrEnd, col = "blue")
+legend("bottomleft", legend = c("True", "Predicted"),
+       col = c("red","blue"), lty = c(1,1), cex = 0.8, horiz = TRUE, inset = .02)
 
-plot(true_uprEnd, type = "l", col = "red", ylim =range(pred_uprEnd,true_uprEnd))
+plot(true_uprEnd, type = "l", col = "red", ylim =range(pred_uprEnd,true_uprEnd), ylab =  "Upper End")
 lines(pred_uprEnd, col = "blue")
+legend("bottomleft", legend = c("True", "Predicted"),
+       col = c("red","blue"), lty = c(1,1), cex = 0.8, horiz = TRUE, inset = .02)
+
+
 
 ```
 
