@@ -1,22 +1,16 @@
-
-LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,test2, scaledY,y ){
+LSTM_sinus_prediction <-function(lag, StepPred,bs=1,ep=100,lstm1_units, scaledY,y ){
   
   # Test Data set
   test1 <- scaledY[1:(lag+StepPred)] # Lower End
   test2 <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)] # Upper End
   scaledY <- scaledY[(lag+1):(length(scaledY)-StepPred)] # Dataset without Test Data
   
-  # Feature and Label
-
   # Create Array for Feature and Label
   Feature <- FeatLabCreator(lag = lag , y = scaledY)[["Feature"]]
   Label <- FeatLabCreator(lag = lag, y = scaledY)[["Label"]]
   
-  
   # Split Data into Train and Validation
-  # Creating Train and Validation lists:
   TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 0.8)
-  
   
   # Model Prediction
   model <- keras_model_sequential()
@@ -35,8 +29,8 @@ LSTM_sinus_prediction <-function(lag, StepPred,lstm1_units,TrainValid_dat,test1,
   set.seed(1234)
   
   history_model <- model %>% fit(TrainValid_dat$Feature_Train, TrainValid_dat$Label_Train,
-                                 batch_size = 1, 
-                                 epochs = 100, 
+                                 batch_size = bs, 
+                                 epochs = ep, 
                                  shuffle = TRUE,
                                  verbose = TRUE, # 1shows,
                                  validation_data = list(TrainValid_dat$Feature_Validation,

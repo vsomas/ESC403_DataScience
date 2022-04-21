@@ -35,7 +35,7 @@ source("SinusPrediction.R")
 days <- 40+10
 x <-  c(0:(24*days))
 #y <-  sin(x/(24/(2*pi) )) + 0.05*x
-y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4)
+y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4) #+ rnorm(length(x), mean = 0, sd = 0.1)
 #y <-  sin(x/(24/(2*pi) )) 
 plot(x,y,type = "l",xlab = "Days",ylab = "Temperature...")
 length(y)
@@ -47,9 +47,8 @@ lag = 12
 StepPred = 20 # Number of Prediction
 lstm1_units = 32 
 
-
-lag_grid <- c(12, 24, 36, 48, 60)
-lstm1_units_grid <- c(3, 6, 9, 12, 15)
+lag_grid         <- c(12, 24, 36, 48, 60)
+lstm1_units_grid <- c(6, 12, 24, 48, 96)
 ```
 
 # Scaling
@@ -61,7 +60,7 @@ plot(scaledY,type ="l")
 # Run the Neural Netowrk
 ```{r}
 parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
-parameter_grid <- parameter_grid[1:2,]
+parameter_grid <- parameter_grid[1:15,]
 best_model_MSE <- Inf
 df_results <- c()
 for(i in 1:nrow(parameter_grid)){
@@ -69,73 +68,68 @@ for(i in 1:nrow(parameter_grid)){
                                lstm1_units=as.integer(parameter_grid[i,2]),
                                TrainValid_dat,test1,test2,
                                scaledY = scaledY, y=y )
-  print(res$results)
   #save best model:
   if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
     best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
     save_model_hdf5(res$model, "model.h5")# Whole model saving
   }
   df_results  <- rbind(df_results, res$results)
+  print(df_results)#show progress
 } 
 ```
-
-
 
 # Save Hyperparameters & Performance
 
 ```{r result}
-
 df_results
+write.csv(data.frame(df_results ),"df_results.csv", row.names = FALSE)
+
+plot(x=df_results[,3],y = df_results[,4], col =df_results[,1],pch = 1,ylim=range(df_results[,c(4:5)]),xlab = "LSTM units", ylab = "MSE")
+lines(x=df_results[,3],y = df_results[,5], col =df_results[,1],pch = 2,type = "p" )
+legend("topright", col = c(48,60, 1,1),pch = c(19,19,1,2),legend =c("Lag48","Lag 60", "MSELower","MSEUpper")) 
 ```
 
 
 # Plotting the sinusfunction of the best model:
 ```{r Plotting, echo = FALSE}
+#get best model & parameters
+
+model_saved<-load_model_hdf5("model.h5")# load whole model
+history_df <- read.csv("history_df")
+df_results <- read.csv("df_results.csv")
+best_model_index <- which.min(rowSums(df_results[,c("MSE1","MSE2")]))
+
+best_lag <- df_results[best_model_index, c("lag")]
+StepPred <-20
+
+
   # Lower end
-test_lwrEnd <- scaledY[1:(lag+StepPred)]                              # scaled test
-pred_lwrEnd <- pred_steps(model = model_saved, start = array(test_lwrEnd[1:lag],dim = c(1,lag,1)),StepPred = StepPred)                                                             # Prediction
-true_lwrEnd <- test_lwrEnd[(lag+1):length(test_lwrEnd)]               # True
+test_lwrEnd <- scaledY[1:(best_lag+StepPred)]                              # scaled test
+pred_lwrEnd <- pred_steps(model = model_saved, 
+                          start = array(test_lwrEnd[1:best_lag],
+                                        dim = c(1,best_lag,1)),
+                          StepPred = StepPred)                        # Prediction
+true_lwrEnd <- test_lwrEnd[(best_lag+1):length(test_lwrEnd)]               # True
 pred_lwrEnd <- pred_lwrEnd*(max(y)-min(y)) + min(y)                   # Back scaling
 true_lwrEnd <- true_lwrEnd*(max(y)-min(y)) + min(y)                   # Back scaling
 
 
   # Upper end
-test_uprEnd <- scaledY[(length(scaledY)-lag-StepPred+1):length(scaledY)]                    # scaled test
-pred_uprEnd <- pred_steps(model = model_saved, start=test_uprEnd[1:lag], StepPred=StepPred) # Prediction
-true_uprEnd <- test_uprEnd[(lag+1):length(test_uprEnd)]                                     # True
+test_uprEnd <- scaledY[(length(scaledY)-best_lag-StepPred+1):length(scaledY)]                    # scaled test
+pred_uprEnd <- pred_steps(model = model_saved, start=test_uprEnd[1:best_lag], StepPred=StepPred) # Prediction
+true_uprEnd <- test_uprEnd[(best_lag+1):length(test_uprEnd)]                                     # True
 pred_uprEnd <- pred_uprEnd*(max(y)-min(y)) + min(y)                                         # Back scaling
 true_uprEnd <- true_uprEnd*(max(y)-min(y)) + min(y)                                         # Back scaling
-
-  plot(true_uprEnd)
 
 par(mfrow=c(1,2))
 plot(true_lwrEnd, type = "l", col = "red", ylim =range(pred_lwrEnd,true_lwrEnd), ylab = "Lower End")
 lines(pred_lwrEnd, col = "blue")
-legend("bottomleft", legend = c("True", "Predicted"),
-       col = c("red","blue"), lty = c(1,1), cex = 0.8, horiz = TRUE, inset = .02)
+legend("topleft", legend = c("True", "Predicted"),
+       col = c("red","blue"), lty = c(1,1), cex = 0.6, horiz = F, inset = .02)
 
 plot(true_uprEnd, type = "l", col = "red", ylim =range(pred_uprEnd,true_uprEnd), ylab =  "Upper End")
 lines(pred_uprEnd, col = "blue")
-legend("bottomleft", legend = c("True", "Predicted"),
-       col = c("red","blue"), lty = c(1,1), cex = 0.8, horiz = TRUE, inset = .02)
 
-
-
-```
-
-
-
-
-
-```{r}
-save_model_hdf5(model, "model.h5")# Whole model saving
-history_df <- as.data.frame(history_model)
-write.csv(history_df,"history_df", row.names = FALSE)
-
-#load model
-model_saved <- load_model_hdf5("model.h5")
-model_saved %>% evaluate(dataX_test, dataY_test)
-prediction_saved <- model_saved %>% predict(dataX)
 ```
 
 
