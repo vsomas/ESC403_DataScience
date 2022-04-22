@@ -38,13 +38,14 @@ lstm1_units_grid <- c(12, 24, 48, 96)
 # Scaling
 ```{r Scaling, echo=FALSE}
 climate <- read.csv("../data/pollution.csv")
-scaledY <- scaling(y = climate$TEMP)
+y <- climate$TEMP
+scaledY <- scaling(y = y)
 plot(scaledY,type ="l")
 ```
 
 # Run the Neural Netowrk
 ```{r}
-parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
+parameter_grid <- tidyr::expand_grid(lag_grid, lstm1_units_grid)
 parameter_grid <- parameter_grid[1:8,]
 best_model_MSE <- Inf
 df_results <- c()
@@ -53,7 +54,7 @@ df_history <- c()
 for(i in 1:nrow(parameter_grid)){
   res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,
                                lstm1_units=as.integer(parameter_grid[i,2]),
-                               scaledY = scaledY, y=y,ep=100 )
+                               scaledY = scaledY, y=y,ep=100,bs=30 )
   #save best model:
   if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
     best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
@@ -74,19 +75,16 @@ for(i in 1:nrow(parameter_grid)){
 ```
 
 
+
 # Load values & Model
 ```{r Plotting, echo = FALSE}
 #get best model & parameters
-model_saved<-load_model_hdf5("model_larger.h5")# load whole model
-history_df <- read.csv("df_history_smaller.csv")
+model_saved<-load_model_hdf5("model_pollution.h5")# load whole model
+history_df <- read.csv("df_history_pollution.csv")
+df_results <- read.csv("df_pollution.csv")
+df_results$sum_MSE <- df_results$MSE1+df_results$MSE2
 
-df_results_smaller <- read.csv("df_results_smaller.csv")
-df_results_larger <- read.csv("df_results_larger.csv")
-df_results_very_large <- data.frame(lag = c(60L, 60L, 60L, 72L, 72L, 72L, 84L, 84L, 84L), StepPred = c(20L, 20L, 20L, 20L, 20L, 20L, 20L, 20L, 20L ), lstm1_units = c(96L, 192L, 384L, 96L, 192L, 384L, 96L, 192L, 384L), MSE1 = c(0.153925333113177, 0.222760036632307, 0.165834656943926, 0.0867987372168824, 0.00571881384827016, 0.0562257796002706, 1.31163507957596, 0.0802010182562029, 1.63771789083884), MSE2 = c(5.80988418942471, 8.08257039925585, 0.361627779048655, 2.56885394389117, 0.558094128022389, 0.212063122921849, 9.61534831633699, 1.21906362924332, 5.90830310253826 ))
-df_results_very_large <- df_results_very_large[2:(nrow(df_results_very_large)-1),]
-
-df_results <- rbind(df_results_smaller,df_results_larger,df_results_very_large)
-df_results <- tidyr::gather(df_results,key = "key",value = "MSE", -c(lag,StepPred,lstm1_units))
+df_results <- tidyr::gather(df_results,key = "key",value = "MSE", -c(lag,StepPred,lstm1_units,sum_MSE))
 ```
 
 
@@ -116,13 +114,8 @@ ggplot(data = df_results, aes(x=lag,y=log(MSE),col = as.factor(key) ))+
 # Plotting the sinusfunction of the best model:
 
 ```{r Plotting, echo = FALSE}
-#best_model_index <- which.min(rowSums(df_results[,c("MSE1","MSE2")]))
+best_model_index <- which.min(df_results$sum_MSE)
 best_lag <- df_results[best_model_index, c("lag")]
-
-
-
-best_lag <- 60
-
 StepPred <-20
 
 
@@ -214,12 +207,5 @@ lines(ts_y,col= "red")
 ```
 
 
-
-```{r}
-climate <- read.csv("../data/pollution.csv")
-plot(climate$TEMP,type = "l")
-dim(climate)
-#plot(climate$PRES,type = "l")
-```
 
 
