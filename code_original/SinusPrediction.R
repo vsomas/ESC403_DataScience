@@ -27,7 +27,6 @@ LSTM_sinus_prediction <-function(lag, StepPred,bs=1,ep=100,lstm1_units, scaledY,
   
   # Train the Neural Network
   set.seed(1234)
-  
   history_model <- model %>% fit(TrainValid_dat$Feature_Train, TrainValid_dat$Label_Train,
                                  batch_size = bs, 
                                  epochs = ep, 

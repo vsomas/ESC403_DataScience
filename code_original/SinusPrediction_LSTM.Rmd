@@ -18,9 +18,9 @@ rm(list=ls())
 
 library(keras)
 library(tensorflow)
+tf$random$set_seed(113)
 library(ggplot2)
 library(dplyr)
-#test
 
 # Source Data
 source("00_Function_LSTM.r")
@@ -43,12 +43,9 @@ length(y)
 
 # Initiate Hyperparameter
 ```{r HyperPara, echo=FALSE}
-lag = 12
 StepPred = 20 # Number of Prediction
-lstm1_units = 32 
-
-lag_grid         <- c(12, 24, 36, 48, 60)
-lstm1_units_grid <- c(6, 12, 24, 48, 96)
+lag_grid         <- c(24, 38, 52, 66)
+lstm1_units_grid <- c(12, 24, 48, 96)
 ```
 
 # Scaling
@@ -63,43 +60,81 @@ parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
 parameter_grid <- parameter_grid[1:15,]
 best_model_MSE <- Inf
 df_results <- c()
+df_history <- c()
+
 for(i in 1:nrow(parameter_grid)){
   res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,
                                lstm1_units=as.integer(parameter_grid[i,2]),
-                               TrainValid_dat,test1,test2,
-                               scaledY = scaledY, y=y )
+                               scaledY = scaledY, y=y,ep=100 )
   #save best model:
   if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
     best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
-    save_model_hdf5(res$model, "model.h5")# Whole model saving
+    save_model_hdf5(res$model, "model_pollution.h5")
   }
+  
+  #save results
   df_results  <- rbind(df_results, res$results)
-  print(df_results)#show progress
+  write.csv(data.frame(df_results ),"df_pollution.csv", row.names = FALSE)
+  
+  #save results
+  df_history  <- rbind(df_history, res$history)
+  write.csv(data.frame(df_history ),"df_history_pollution.csv", row.names = FALSE)
+  
+  #show progress
+  print(df_results)
 } 
 ```
 
-# Save Hyperparameters & Performance
 
-```{r result}
-df_results
-write.csv(data.frame(df_results ),"df_results.csv", row.names = FALSE)
+# Load values & Model
+```{r Plotting, echo = FALSE}
+#get best model & parameters
+model_saved<-load_model_hdf5("model_larger.h5")# load whole model
+history_df <- read.csv("df_history_smaller.csv")
 
-plot(x=df_results[,3],y = df_results[,4], col =df_results[,1],pch = 1,ylim=range(df_results[,c(4:5)]),xlab = "LSTM units", ylab = "MSE")
-lines(x=df_results[,3],y = df_results[,5], col =df_results[,1],pch = 2,type = "p" )
-legend("topright", col = c(48,60, 1,1),pch = c(19,19,1,2),legend =c("Lag48","Lag 60", "MSELower","MSEUpper")) 
+df_results_smaller <- read.csv("df_results_smaller.csv")
+df_results_larger <- read.csv("df_results_larger.csv")
+df_results_very_large <- data.frame(lag = c(60L, 60L, 60L, 72L, 72L, 72L, 84L, 84L, 84L), StepPred = c(20L, 20L, 20L, 20L, 20L, 20L, 20L, 20L, 20L ), lstm1_units = c(96L, 192L, 384L, 96L, 192L, 384L, 96L, 192L, 384L), MSE1 = c(0.153925333113177, 0.222760036632307, 0.165834656943926, 0.0867987372168824, 0.00571881384827016, 0.0562257796002706, 1.31163507957596, 0.0802010182562029, 1.63771789083884), MSE2 = c(5.80988418942471, 8.08257039925585, 0.361627779048655, 2.56885394389117, 0.558094128022389, 0.212063122921849, 9.61534831633699, 1.21906362924332, 5.90830310253826 ))
+df_results_very_large <- df_results_very_large[2:(nrow(df_results_very_large)-1),]
+
+df_results <- rbind(df_results_smaller,df_results_larger,df_results_very_large)
+df_results <- tidyr::gather(df_results,key = "key",value = "MSE", -c(lag,StepPred,lstm1_units))
 ```
 
 
+```{r}
+df_results <- df_results[order(df_results$lstm1_units),]
+
+df_results$lstm1_units <- factor(df_results$lstm1_units, levels = c(6,12,24,48,96,192,384),
+labels = paste0("lstm unit = ",c(6,12,24,48,96,192,384))
+) 
+
+ggplot(data = df_results, aes(x=lag,y=log(MSE),col = as.factor(key) ))+
+  geom_point(position=position_dodge(5))+
+  geom_smooth(se = FALSE, method = 'loess')+
+  facet_wrap(~lstm1_units)+
+  theme_bw()+
+  scale_color_manual("",values=c("darkred","darkblue"))+
+  theme(legend.position="top")
+
+```
+
+
+
+
+
+
+
 # Plotting the sinusfunction of the best model:
+
 ```{r Plotting, echo = FALSE}
-#get best model & parameters
-
-model_saved<-load_model_hdf5("model.h5")# load whole model
-history_df <- read.csv("history_df")
-df_results <- read.csv("df_results.csv")
-best_model_index <- which.min(rowSums(df_results[,c("MSE1","MSE2")]))
-
+#best_model_index <- which.min(rowSums(df_results[,c("MSE1","MSE2")]))
 best_lag <- df_results[best_model_index, c("lag")]
+
+
+
+best_lag <- 60
+
 StepPred <-20
 
 
@@ -130,8 +165,73 @@ legend("topleft", legend = c("True", "Predicted"),
 plot(true_uprEnd, type = "l", col = "red", ylim =range(pred_uprEnd,true_uprEnd), ylab =  "Upper End")
 lines(pred_uprEnd, col = "blue")
 
+df_prediction <- data.frame(true_lwrEnd,pred_lwrEnd, true_uprEnd, pred_uprEnd)
+df_prediction$x <- 1:nrow(df_prediction)
+df_prediction <- tidyr::gather(df_prediction, key = "key", value = "value",-c(x))
+df_prediction <- cbind(df_prediction, matrix(unlist(strsplit(df_prediction$key,"_")),ncol = 2,byrow = T))
+df_prediction <- dplyr::select(df_prediction,-c(key))
+colnames(df_prediction) <- c("x","y","True","End")
+
+ggplot(data = df_prediction, aes(x=x,y=y,col = as.factor(True) ))+
+  geom_line()+
+  labs(title = "",y = "",
+       x="")+
+  facet_wrap(~End,scales = "free")+
+  theme_bw()+
+  scale_color_manual("",values=c("darkred","darkblue"))+
+  theme(legend.position="top")
+
 ```
 
 
+
+```{r}
+library(tram)
+df_results$lstm1_units <- as.integer(stringr::str_replace(df_results$lstm1_units,"lstm unit = ",""))
+model1 <- tram::BoxCox(data = df_results, MSE~lag+lstm1_units)
+summary(model1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+#ARIMA-forecasting
+library(forecast)
+ts_y <- ts(y[1:(length(y)-StepPred)], frequency=24)#need to be known!
+decomp <- stl(ts_y, s.window = 'periodic')
+plot(decomp)
+automaticARIMA <- auto.arima(decomp$time.series[,"remainder"],trace = F, seasonal =F,allowmean=F)#seasonality is off and zeromean here (bc stationary)
+futurVal <- forecast(automaticARIMA,h=20,level=c(95))#h=24: 24 values in future
+plot(futurVal, xlim = c(45,55))
+```
+
+```{r}
+fitARIMA=auto.arima(ts_y,trace = F,D=NA)#automatic&forced seasonality (D=NA is default, D=1 is forced for seasonality)
+futurVal <- forecast(fitARIMA,h=20,level=c(95))#h=24: 24 values in future
+plot(futurVal)
+lines(ts_y,col= "red")
+```
+
+
+
+```{r}
+climate <- read.csv("../data/pollution.csv")
+plot(climate$TEMP,type = "l")
+dim(climate)
+#plot(climate$PRES,type = "l")
+```
 
 

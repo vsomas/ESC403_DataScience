@@ -1,7 +1,7 @@
 # Loading required Packages
-require(keras)
-require(tensorflow)
-require(tidyverse)
+#require(keras)
+#require(tensorflow)
+#require(tidyverse)
 
 # Scaling: 
 scaling <- function(y){
