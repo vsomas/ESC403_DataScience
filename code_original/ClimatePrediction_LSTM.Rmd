@@ -28,19 +28,6 @@ source("SinusPrediction.R")
 
 ```
 
-
-# Data Generataion
-```{r DataGeneration, echo = FALSE}
-# Create Data
-days <- 40+10
-x <-  c(0:(24*days))
-#y <-  sin(x/(24/(2*pi) )) + 0.05*x
-y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4) #+ rnorm(length(x), mean = 0, sd = 0.1)
-#y <-  sin(x/(24/(2*pi) )) 
-plot(x,y,type = "l",xlab = "Days",ylab = "Temperature...")
-length(y)
-```
-
 # Initiate Hyperparameter
 ```{r HyperPara, echo=FALSE}
 StepPred = 20 # Number of Prediction
