@@ -62,5 +62,3 @@ pred_steps <- function(model, start, StepPred){
   return(hist)
 }
 
-
-

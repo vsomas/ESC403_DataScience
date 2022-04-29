@@ -28,7 +28,18 @@ source("SinusPrediction.R")
 
 ```
 
-# Initiate Hyperparameter
+
+# Data Generataion
+```{r DataGeneration, echo = FALSE}
+# Create Data (deterministic)
+days <- 40+10
+x <-  c(0:(24*days))
+y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4) #+ rnorm(length(x), mean = 0, sd = 0.1)
+plot(x,y,type = "l",xlab = "Days",ylab = "Temperature...")
+length(y)
+```
+
+# Initiate Hyperparameter-Grid
 ```{r HyperPara, echo=FALSE}
 StepPred = 20 # Number of Prediction
 lag_grid         <- c(24, 38, 52, 66)
@@ -37,16 +48,13 @@ lstm1_units_grid <- c(12, 24, 48, 96)
 
 # Scaling
 ```{r Scaling, echo=FALSE}
-climate <- read.csv("../data/pollution.csv")
-y <- climate$TEMP
 scaledY <- scaling(y = y)
 plot(scaledY,type ="l")
 ```
 
 # Run the Neural Netowrk
-```{r}
-parameter_grid <- tidyr::expand_grid(lag_grid, lstm1_units_grid)
-parameter_grid <- parameter_grid[1:8,]
+```{r,eval = F}
+parameter_grid <- expand_grid(lag_grid, lstm1_units_grid)
 best_model_MSE <- Inf
 df_results <- c()
 df_history <- c()
@@ -54,20 +62,20 @@ df_history <- c()
 for(i in 1:nrow(parameter_grid)){
   res <- LSTM_sinus_prediction(lag=as.integer(parameter_grid[i,1]), StepPred,
                                lstm1_units=as.integer(parameter_grid[i,2]),
-                               scaledY = scaledY, y=y,ep=100,bs=30 )
+                               scaledY = scaledY, y=y,ep=100 )
   #save best model:
   if( sum(res$results[c("MSE1","MSE2")]) < best_model_MSE){
     best_model_MSE <- sum(res$results[c("MSE1","MSE2")]) 
-    save_model_hdf5(res$model, "model_pollution.h5")
+    save_model_hdf5(res$model, "model_sinus.h5")
   }
   
   #save results
   df_results  <- rbind(df_results, res$results)
-  write.csv(data.frame(df_results ),"df_pollution.csv", row.names = FALSE)
+  write.csv(data.frame(df_results ),"df_sinus_results.csv", row.names = FALSE)
   
   #save results
   df_history  <- rbind(df_history, res$history)
-  write.csv(data.frame(df_history ),"df_history_pollution.csv", row.names = FALSE)
+  write.csv(data.frame(df_history ),"df_sinus_history.csv", row.names = FALSE)
   
   #show progress
   print(df_results)
@@ -75,20 +83,19 @@ for(i in 1:nrow(parameter_grid)){
 ```
 
 
-
 # Load values & Model
 ```{r Plotting, echo = FALSE}
 #get best model & parameters
-model_saved<-load_model_hdf5("model_pollution.h5")# load whole model
-history_df <- read.csv("df_history_pollution.csv")
-df_results <- read.csv("df_pollution.csv")
-df_results$sum_MSE <- df_results$MSE1+df_results$MSE2
-
-df_results <- tidyr::gather(df_results,key = "key",value = "MSE", -c(lag,StepPred,lstm1_units,sum_MSE))
+model_saved<-load_model_hdf5("model_sinus.h5")# load whole model
+df_results <- read.csv("df_sinus_results.csv")# load results of the neural networks
+best_model_index <- which.min(rowSums(df_results[,c("MSE1","MSE2")]))
+best_lag <- df_results[best_model_index, c("lag")]
 ```
 
 
 ```{r}
+# visualization of results
+df_results <- tidyr::gather(df_results,key = "key",value = "MSE", -c(lag,StepPred,lstm1_units))
 df_results <- df_results[order(df_results$lstm1_units),]
 
 df_results$lstm1_units <- factor(df_results$lstm1_units, levels = c(6,12,24,48,96,192,384),
@@ -114,13 +121,10 @@ ggplot(data = df_results, aes(x=lag,y=log(MSE),col = as.factor(key) ))+
 # Plotting the sinusfunction of the best model:
 
 ```{r Plotting, echo = FALSE}
-best_model_index <- which.min(df_results$sum_MSE)
-best_lag <- df_results[best_model_index, c("lag")]
 StepPred <-20
 
-
   # Lower end
-test_lwrEnd <- scaledY[1:(best_lag+StepPred)]                              # scaled test
+test_lwrEnd <- scaledY[1:(best_lag+StepPred)]                         # scaled test
 pred_lwrEnd <- pred_steps(model = model_saved, 
                           start = array(test_lwrEnd[1:best_lag],
                                         dim = c(1,best_lag,1)),
@@ -137,15 +141,6 @@ true_uprEnd <- test_uprEnd[(best_lag+1):length(test_uprEnd)]                    
 pred_uprEnd <- pred_uprEnd*(max(y)-min(y)) + min(y)                                         # Back scaling
 true_uprEnd <- true_uprEnd*(max(y)-min(y)) + min(y)                                         # Back scaling
 
-par(mfrow=c(1,2))
-plot(true_lwrEnd, type = "l", col = "red", ylim =range(pred_lwrEnd,true_lwrEnd), ylab = "Lower End")
-lines(pred_lwrEnd, col = "blue")
-legend("topleft", legend = c("True", "Predicted"),
-       col = c("red","blue"), lty = c(1,1), cex = 0.6, horiz = F, inset = .02)
-
-plot(true_uprEnd, type = "l", col = "red", ylim =range(pred_uprEnd,true_uprEnd), ylab =  "Upper End")
-lines(pred_uprEnd, col = "blue")
-
 df_prediction <- data.frame(true_lwrEnd,pred_lwrEnd, true_uprEnd, pred_uprEnd)
 df_prediction$x <- 1:nrow(df_prediction)
 df_prediction <- tidyr::gather(df_prediction, key = "key", value = "value",-c(x))
@@ -161,7 +156,6 @@ ggplot(data = df_prediction, aes(x=x,y=y,col = as.factor(True) ))+
   theme_bw()+
   scale_color_manual("",values=c("darkred","darkblue"))+
   theme(legend.position="top")
-
 ```
 
 
@@ -207,5 +201,12 @@ lines(ts_y,col= "red")
 ```
 
 
+
+```{r}
+climate <- read.csv("../data/pollution.csv")
+plot(climate$TEMP,type = "l")
+dim(climate)
+#plot(climate$PRES,type = "l")
+```
 
 
