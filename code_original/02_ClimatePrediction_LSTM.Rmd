@@ -108,7 +108,7 @@ ggplot(data = df_results, aes(x=lag,y=log(MSE),col = as.factor(key) ))+
 # Plotting the sinusfunction of the best model:
 
 ```{r Plotting, echo = FALSE}
-StepPred <-200
+StepPred <-20
 
   # Lower end
 test_lwrEnd <- scaledY[1:(best_lag+StepPred)]                              # scaled test
