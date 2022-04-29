@@ -11,7 +11,7 @@ LSTM_sinus_prediction <-function(lag, StepPred,bs=1,ep=100,lstm1_units, scaledY,
   
   # Split Data into Train and Validation
   TrainValid_dat <- TrainValidTest(Feature = Feature, Label = Label, proportion = 0.8)
-  
+
   # Model Prediction
   model <- keras_model_sequential()
   model %>%
