@@ -1,0 +1,124 @@
+---
+title: "ESC403_SinusPred"
+author: "Jerome Sepin"
+date: "14 4 2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Preparation
+```{r Preparation}
+# Clean Data
+rm(list=ls())
+
+library(ggplot2)
+library(dplyr)
+library(forecast)
+```
+
+```{r DataGeneration, echo = FALSE}
+# Create Data (deterministic)
+days <- 40+10
+x <-  c(0:(24*days))
+y <-  sin(x/(24/(2*pi) )) + 0.005*x^(1.4) #+ rnorm(length(x), mean = 0, sd = 0.1)
+plot(x,y,type = "l",xlab = "Days",ylab = "Temperature...")
+length(y)
+```
+
+
+#ARIMA-forecasting
+StepPred <- 20
+ts_y <- ts(y[1:(length(y)-StepPred)], frequency=24)#need to be known!
+decomp <- stl(ts_y, s.window = 'periodic')
+plot(decomp)
+automaticARIMA <- auto.arima(decomp$time.series[,"remainder"],trace = T, seasonal =F,allowmean=F)#seasonality is off and zeromean here (bc stationary)
+futurVal <- forecast(automaticARIMA,h=StepPred,level=c(95))#h=24: 24 values in future
+plot(futurVal, xlim = c(45,55))
+
+
+```{r}
+StepPred <- 20
+ts_y <- ts(y[1:(length(y)-StepPred)], frequency=24)#need to be known!
+fitARIMA=auto.arima(ts_y,trace = F,D=NA) # automatic&forced seasonality (D=NA is default, D=1 is forced for seasonality)
+futurVal <- forecast(fitARIMA,h=StepPred,level=c(95))#h=20: 20 values in future
+
+plot(as.numeric(futurVal$mean))s
+lines(c(futurVal$lower))
+lines(c(futurVal$upper))
+lines(y[(length(y)-StepPred+1):length(y)],col= "red")
+```
+
+
+```{r}
+true_uprEnd <- y[(length(y)-StepPred+1):length(y)]
+pred_uprEnd <- as.numeric(futurVal$mean)
+
+df_prediction <- data.frame(true_uprEnd, pred_uprEnd)
+df_prediction$x <- 1:nrow(df_prediction)
+df_prediction <- tidyr::gather(df_prediction, key = "key", value = "value",-c(x))
+df_prediction <- cbind(df_prediction, matrix(unlist(strsplit(df_prediction$key,"_")),ncol = 2,byrow = T))
+df_prediction <- dplyr::select(df_prediction,-c(key))
+colnames(df_prediction) <- c("x","y","True","End")
+
+
+ggplot(data = df_prediction, aes(x=x,y=y,col = as.factor(True) ))+
+  geom_line()+
+  labs(title = "",y = "",
+       x="")+
+  facet_wrap(~End,scales = "free")+
+  theme_bw()+
+  scale_color_manual("",values=c("darkred","darkblue"))+
+  theme(legend.position="top")
+```
+
+
+
+
+
+```{r}
+climate <- read.csv("../data/pollution.csv")
+y <- climate$TEMP
+plot(y,type = "l")
+```
+
+```{r}
+StepPred <- 20
+ts_y <- ts(y[1:(length(y)-StepPred)], frequency=24)#need to be known!
+fitARIMA=auto.arima(ts_y,trace = F,D=NA) # automatic&forced seasonality (D=NA is default, D=1 is forced for seasonality)
+futurVal <- forecast(fitARIMA,h=StepPred,level=c(95))#h=20: 20 values in future
+
+plot(as.numeric(futurVal$mean))
+lines(c(futurVal$lower))
+lines(c(futurVal$upper))
+lines(y[(length(y)-StepPred+1):length(y)],col= "red")
+```
+
+
+```{r}
+true_uprEnd <- y[(length(y)-StepPred+1):length(y)]
+pred_uprEnd <- as.numeric(futurVal$mean)
+
+MSE <- sum((true_uprEnd-pred_uprEnd)^2)
+
+df_prediction <- data.frame(true_uprEnd, pred_uprEnd)
+df_prediction$x <- 1:nrow(df_prediction)
+df_prediction <- tidyr::gather(df_prediction, key = "key", value = "value",-c(x))
+df_prediction <- cbind(df_prediction, matrix(unlist(strsplit(df_prediction$key,"_")),ncol = 2,byrow = T))
+df_prediction <- dplyr::select(df_prediction,-c(key))
+colnames(df_prediction) <- c("x","y","True","End")
+
+
+
+ggplot(data = df_prediction, aes(x=x,y=y,col = as.factor(True) ))+
+  geom_line()+
+  labs(title = "",y = "",
+       x="")+
+  facet_wrap(~End,scales = "free")+
+  theme_bw()+
+  scale_color_manual("",values=c("darkred","darkblue"))+
+  theme(legend.position="top")
+```

@@ -185,18 +185,28 @@ summary(model1)
 ```{r}
 #ARIMA-forecasting
 library(forecast)
+StepPred <- 20
 ts_y <- ts(y[1:(length(y)-StepPred)], frequency=24)#need to be known!
 decomp <- stl(ts_y, s.window = 'periodic')
 plot(decomp)
-automaticARIMA <- auto.arima(decomp$time.series[,"remainder"],trace = F, seasonal =F,allowmean=F)#seasonality is off and zeromean here (bc stationary)
-futurVal <- forecast(automaticARIMA,h=20,level=c(95))#h=24: 24 values in future
+automaticARIMA <- auto.arima(decomp$time.series[,"remainder"],trace = T, seasonal =F,allowmean=F)#seasonality is off and zeromean here (bc stationary)
+futurVal <- forecast(automaticARIMA,h=StepPred,level=c(95))#h=24: 24 values in future
 plot(futurVal, xlim = c(45,55))
 ```
 
 ```{r}
-fitARIMA=auto.arima(ts_y,trace = F,D=NA)#automatic&forced seasonality (D=NA is default, D=1 is forced for seasonality)
-futurVal <- forecast(fitARIMA,h=20,level=c(95))#h=24: 24 values in future
+fitARIMA=auto.arima(ts_y,trace = F,D=NA) # automatic&forced seasonality (D=NA is default, D=1 is forced for seasonality)
+futurVal <- forecast(fitARIMA,h=20,level=c(95))#h=20: 20 values in future
 plot(futurVal)
+
+plot(futurVal$mean)
+lines(futurVal$lower)
+lines(futurVal$upper)
+par(new=T)
+plot(y[(length(y)-StepPred):length(y)],col= "red",type = "l")
+
+
+
 lines(ts_y,col= "red")
 ```
 
